@@ -19,6 +19,12 @@
     return new Date(iso).toLocaleDateString("tr-TR");
   }
 
+  function parseAmount(raw) {
+    const val = parseFloat(String(raw).replace(",", "."));
+    if (isNaN(val)) return NaN;
+    return val * 1000;
+  }
+
   function calcTotals() {
     return notes.reduce(
       (acc, n) => {
@@ -68,7 +74,8 @@
       <div class="card">
         <div class="field">
           <input type="text" id="nameInput" placeholder="Kişi adı" />
-          <input type="text" id="amountInput" inputmode="decimal" placeholder="Borç tutarı (₺)" />
+          <input type="text" id="amountInput" inputmode="decimal" placeholder="Borç tutarı — örn. 65 = 65.000 ₺" />
+          <div class="hint sans" style="margin-top:-6px;">Girdiğin sayı bin ile çarpılır (65 → 65.000 ₺)</div>
 
           <div>
             <div class="rate-label sans">Faiz oranı</div>
@@ -138,7 +145,7 @@
     const amountInput = document.getElementById("amountInput");
     const preview = document.getElementById("preview");
     if (!amountInput || !preview) return;
-    const val = parseFloat(amountInput.value.replace(",", "."));
+    const val = parseAmount(amountInput.value);
     if (amountInput.value && !isNaN(val)) {
       const interest = val * (selectedRate / 100);
       const total = val + interest;
@@ -192,7 +199,7 @@
     const errorEl = document.getElementById("formError");
 
     const trimmedName = nameInput.value.trim();
-    const numericAmount = parseFloat(amountInput.value.replace(",", "."));
+    const numericAmount = parseAmount(amountInput.value);
 
     if (!trimmedName) {
       errorEl.textContent = "İsim girin.";
