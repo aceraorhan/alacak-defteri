@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const RATES = [2.5, 3];
+  const RATES = [1, 2, 2.5, 3];
   let notes = [];
   let selectedRate = 2.5;
 
