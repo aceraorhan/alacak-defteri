@@ -29,11 +29,16 @@
     return notes.reduce(
       (acc, n) => {
         const interest = n.amount * (n.rate / 100);
-        acc.principal += n.amount;
-        acc.interest += interest;
+        const total = n.amount + interest;
+        if (n.paid) {
+          acc.paidTotal += total;
+        } else {
+          acc.principal += n.amount;
+          acc.interest += interest;
+        }
         return acc;
       },
-      { principal: 0, interest: 0 }
+      { principal: 0, interest: 0, paidTotal: 0 }
     );
   }
 
@@ -60,14 +65,24 @@
         notes.length > 0
           ? `<div class="summary-row" style="margin-top:24px;">
               <div class="summary-card">
-                <div class="summary-label sans">Toplam Anapara</div>
+                <div class="summary-label sans">Bekleyen Anapara</div>
                 <div class="summary-value">${formatTL(totals.principal)}</div>
               </div>
               <div class="summary-card accent">
-                <div class="summary-label sans">Toplam Faiz</div>
+                <div class="summary-label sans">Bekleyen Faiz</div>
                 <div class="summary-value">${formatTL(totals.interest)}</div>
               </div>
-            </div>`
+            </div>
+            ${
+              totals.paidTotal > 0
+                ? `<div class="summary-row" style="margin-top:-14px;">
+                    <div class="summary-card" style="background:#EFEAE0; border-color:#DBD5C6;">
+                      <div class="summary-label sans">Tahsil Edilen</div>
+                      <div class="summary-value" style="color:#7A7263;">${formatTL(totals.paidTotal)}</div>
+                    </div>
+                  </div>`
+                : ""
+            }`
           : `<div style="margin-top:24px;"></div>`
       }
 
@@ -108,13 +123,14 @@
   function renderNote(n) {
     const interest = n.amount * (n.rate / 100);
     const total = n.amount + interest;
+    const paid = !!n.paid;
     return `
-      <div class="note" data-id="${n.id}">
+      <div class="note ${paid ? "note-paid" : ""}" data-id="${n.id}">
         <div class="note-top">
           <div class="note-left">
             <div class="avatar">👤</div>
             <div>
-              <div class="note-name">${escapeHtml(n.name)}</div>
+              <div class="note-name">${escapeHtml(n.name)} ${paid ? '<span class="paid-badge sans">✓ Alındı</span>' : ""}</div>
               <div class="note-date sans">${formatDate(n.createdAt)}</div>
             </div>
           </div>
@@ -123,7 +139,7 @@
         <div class="note-rates">
           ${RATES.map(
             (r) =>
-              `<button type="button" class="rate-btn-small sans ${n.rate === r ? "active" : ""}" data-noterate="${n.id}" data-rate="${r}">%${r}</button>`
+              `<button type="button" class="rate-btn-small sans ${n.rate === r ? "active" : ""}" data-noterate="${n.id}" data-rate="${r}" ${paid ? "disabled" : ""}>%${r}</button>`
           ).join("")}
         </div>
         <div class="note-footer sans">
@@ -131,6 +147,9 @@
           <span class="interest">↗ Faiz: ${formatTL(interest)}</span>
           <span class="total">Toplam: ${formatTL(total)}</span>
         </div>
+        <button type="button" class="paid-toggle sans ${paid ? "is-paid" : ""}" data-paid="${n.id}">
+          ${paid ? "✓ Ücret alındı — geri al" : "Ücret alındı olarak işaretle"}
+        </button>
       </div>
     `;
   }
@@ -191,6 +210,14 @@
         render();
       });
     });
+
+    document.querySelectorAll("[data-paid]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.paid;
+        notes = notes.map((n) => (n.id === id ? { ...n, paid: !n.paid } : n));
+        render();
+      });
+    });
   }
 
   function addNote() {
@@ -216,6 +243,7 @@
         name: trimmedName,
         amount: numericAmount,
         rate: selectedRate,
+        paid: false,
         createdAt: new Date().toISOString(),
       },
       ...notes,

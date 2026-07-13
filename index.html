@@ -150,6 +150,7 @@
     cursor: pointer;
   }
   .rate-btn-small.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .rate-btn-small:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .preview { font-size: 13px; color: var(--muted); padding-top: 2px; }
   .preview strong { color: var(--ink); }
@@ -194,6 +195,39 @@
   .note-footer .principal { color: var(--muted); }
   .note-footer .interest { color: var(--warn); }
   .note-footer .total { font-weight: 700; color: var(--ink); }
+
+  .note.note-paid { opacity: 0.6; background: #F4F1E9; }
+  .note.note-paid .note-footer span { text-decoration: line-through; }
+  .paid-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #5C8A6A;
+    background: #E4EDE6;
+    border-radius: 5px;
+    padding: 2px 7px;
+    margin-left: 6px;
+    vertical-align: middle;
+    text-decoration: none;
+  }
+  .paid-toggle {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .paid-toggle.is-paid {
+    border: 1px solid #B7CDBB;
+    background: #E4EDE6;
+    color: #4C7358;
+  }
 </style>
 </head>
 <body>
