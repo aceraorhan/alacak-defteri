@@ -4,6 +4,7 @@
   const RATES = [1, 2, 2.5, 3];
   let notes = [];
   let selectedRate = 2.5;
+  let editingId = null;
 
   const app = document.getElementById("app");
 
@@ -124,6 +125,23 @@
     const interest = n.amount * (n.rate / 100);
     const total = n.amount + interest;
     const paid = !!n.paid;
+    if (editingId === n.id) {
+      return `
+      <div class="note" data-id="${n.id}">
+        <div class="field">
+          <input type="text" id="editName" value="${escapeAttr(n.name)}" placeholder="Kişi adı" />
+          <input type="text" id="editAmount" inputmode="decimal" value="${String(Math.round(n.amount) / 1000).replace(".", ",")}" placeholder="Borç tutarı — örn. 65 = 65.000 ₺" />
+          <div class="hint sans" style="margin-top:-6px;">Girdiğin sayı bin ile çarpılır (65 → 65.000 ₺)</div>
+          <div class="preview sans" id="editPreview"></div>
+          <div class="error sans" id="editError"></div>
+          <div class="edit-actions">
+            <button type="button" class="add-btn sans" id="saveEditBtn">Kaydet</button>
+            <button type="button" class="cancel-btn sans" id="cancelEditBtn">İptal</button>
+          </div>
+        </div>
+      </div>
+    `;
+    }
     return `
       <div class="note ${paid ? "note-paid" : ""}" data-id="${n.id}">
         <div class="note-top">
@@ -134,7 +152,10 @@
               <div class="note-date sans">${formatDate(n.createdAt)}</div>
             </div>
           </div>
-          <button class="del-btn" data-del="${n.id}" aria-label="Notu sil">✕</button>
+          <div class="note-actions">
+            <button class="edit-btn" data-edit="${n.id}" aria-label="Notu düzenle">✎</button>
+            <button class="del-btn" data-del="${n.id}" aria-label="Notu sil">✕</button>
+          </div>
         </div>
         <div class="note-rates">
           ${RATES.map(
@@ -158,6 +179,50 @@
     const div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  function escapeAttr(str) {
+    return escapeHtml(str).replace(/"/g, "&quot;");
+  }
+
+  function updateEditPreview() {
+    const note = notes.find((n) => n.id === editingId);
+    const amountEl = document.getElementById("editAmount");
+    const preview = document.getElementById("editPreview");
+    if (!note || !amountEl || !preview) return;
+    const val = parseAmount(amountEl.value);
+    if (amountEl.value && !isNaN(val)) {
+      const interest = val * (note.rate / 100);
+      preview.innerHTML = `Faiz: ${formatTL(interest)} — Toplam: <strong>${formatTL(val + interest)}</strong>`;
+    } else {
+      preview.innerHTML = "";
+    }
+  }
+
+  function saveEdit() {
+    const nameEl = document.getElementById("editName");
+    const amountEl = document.getElementById("editAmount");
+    const errorEl = document.getElementById("editError");
+    const trimmedName = nameEl.value.trim();
+    const numericAmount = parseAmount(amountEl.value);
+    if (!trimmedName) {
+      errorEl.textContent = "İsim girin.";
+      return;
+    }
+    if (!numericAmount || numericAmount <= 0) {
+      errorEl.textContent = "Geçerli bir borç tutarı girin.";
+      return;
+    }
+    notes = notes.map((n) =>
+      n.id === editingId ? { ...n, name: trimmedName, amount: numericAmount } : n
+    );
+    editingId = null;
+    render();
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    render();
   }
 
   function updatePreview() {
@@ -195,8 +260,36 @@
       });
     }
 
+    document.querySelectorAll("[data-edit]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        editingId = btn.dataset.edit;
+        render();
+      });
+    });
+
+    const saveEditBtn = document.getElementById("saveEditBtn");
+    const cancelEditBtn = document.getElementById("cancelEditBtn");
+    const editName = document.getElementById("editName");
+    const editAmount = document.getElementById("editAmount");
+    if (saveEditBtn) saveEditBtn.addEventListener("click", saveEdit);
+    if (cancelEditBtn) cancelEditBtn.addEventListener("click", cancelEdit);
+    [editName, editAmount].forEach((el) => {
+      if (!el) return;
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") saveEdit();
+        if (e.key === "Escape") cancelEdit();
+      });
+    });
+    if (editAmount) editAmount.addEventListener("input", updateEditPreview);
+    if (editName) {
+      editName.focus();
+      editName.setSelectionRange(editName.value.length, editName.value.length);
+    }
+    updateEditPreview();
+
     document.querySelectorAll("[data-del]").forEach((btn) => {
       btn.addEventListener("click", () => {
+        if (editingId === btn.dataset.del) editingId = null;
         notes = notes.filter((n) => n.id !== btn.dataset.del);
         render();
       });
